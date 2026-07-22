@@ -15,6 +15,19 @@ A browser-based jigsaw puzzle game built with Vanilla JavaScript.
 - Local records and statistics
 - Theme customization
 
+## Screenshots
+### Setup Screen
+
+![setup](screenshots/setup.png)
+
+### Gameplay
+
+![gameplay](screenshots/gameplay.png)
+
+### Completion Screen
+
+![complete](screenshots/complete.png)
+
 ## Technologies
 
 - HTML5
