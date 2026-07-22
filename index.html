@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jigsaw Puzzle Studio</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <div class="app-header">
+    <div class="title">
+      <span class="logo">🧩</span>
+      <div>
+        <h1>Jigsaw Puzzle Studio</h1>
+        <p>Pick a picture, choose a difficulty, and piece it together.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="recordsBtn" title="Records & Stats">🏆</button>
+      <button class="btn-icon" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <!-- ==================================================================
+       SETUP SCREEN
+       ================================================================== -->
+  <div id="setupScreen" class="card">
+
+    <div class="section">
+      <label class="section-label">1. Choose an image</label>
+      <div class="gallery" id="gallery">
+        <!-- default thumbnails, persisted custom uploads, and the upload tile are injected by JS -->
+      </div>
+      <input type="file" id="fileInput" accept="image/*">
+      <p class="hint" id="imageHint">Using a default image. Click any thumbnail to change it, or upload your own — uploads are saved on this device.</p>
+    </div>
+
+    <div class="section">
+      <label class="section-label">2. Choose a difficulty</label>
+
+      <div class="aspect-banner" id="aspectBanner" style="display:none;">
+        <div>
+          📐 This image is <strong id="aspectDimsText"></strong> (<span id="aspectRatioText"></span>).
+          Recommended grid: <strong id="aspectRecText"></strong> so pieces stay proportioned, not cropped.
+        </div>
+        <button class="btn-ghost abtn" id="applyRecommendedGridBtn">Use Recommended Grid</button>
+      </div>
+
+      <div class="difficulty-row" id="presetRow">
+        <button class="preset-btn" data-rows="3" data-cols="3">
+          <span class="big">Easy</span><span class="small">3 &times; 3 &middot; 9 pieces</span>
+        </button>
+        <button class="preset-btn" data-rows="6" data-cols="6">
+          <span class="big">Medium</span><span class="small">6 &times; 6 &middot; 36 pieces</span>
+        </button>
+        <button class="preset-btn" data-rows="10" data-cols="10">
+          <span class="big">Hard</span><span class="small">10 &times; 10 &middot; 100 pieces</span>
+        </button>
+        <button class="preset-btn" id="customPresetBtn">
+          <span class="big">Custom</span><span class="small">Pick your own grid</span>
+        </button>
+      </div>
+
+      <div class="custom-grid" id="customGrid" style="display:none;">
+        <label>Rows <input type="number" id="rowsInput" min="2" max="100" value="6"></label>
+        <label>Columns <input type="number" id="colsInput" min="2" max="100" value="6"></label>
+        <span>Total: <span class="pieces-total" id="piecesTotal">36</span> pieces</span>
+        <span class="custom-grid-note">Grids can go up to 100 &times; 100 (10,000 pieces).</span>
+        <p class="hint" id="perfWarning" style="display:none; width:100%;"></p>
+      </div>
+    </div>
+
+    <div class="start-row">
+      <button class="btn-primary" id="startBtn">Start Puzzle &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ==================================================================
+       GAME SCREEN
+       ================================================================== -->
+  <div id="gameScreen">
+
+    <div class="game-toolbar">
+      <div class="stat-group">
+        <div class="stat"><span class="label">Time</span><span class="value" id="timerDisplay">00:00</span></div>
+        <div class="stat"><span class="label">Moves</span><span class="value" id="movesDisplay">0</span></div>
+        <div class="stat">
+          <span class="label">Progress</span>
+          <span class="value" id="progressDisplay">0 / 0</span>
+          <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-ghost" id="previewBtn">👁 Show Preview</button>
+        <button class="btn-secondary" id="shuffleBtn">🔀 Shuffle Tray</button>
+        <button class="btn-secondary" id="saveGameBtn">💾 Save Game</button>
+        <button class="btn-ghost" id="newPuzzleBtn">↺ New Puzzle</button>
+      </div>
+    </div>
+
+    <div class="organizer-toolbar" id="organizerToolbar">
+      <div class="filter-controls" id="filterControls">
+        <button class="btn-ghost btn-sm" id="edgesOnlyBtn" title="Show only border &amp; corner pieces">🧩 Edges Only</button>
+        <div class="color-filter-group">
+          <button class="btn-ghost btn-sm" id="colorFilterBtn" title="Filter pieces by dominant color">🎨 Isolate by Color</button>
+          <button class="btn-ghost btn-sm" id="eyedropperBtn" title="Click a piece to filter by its color">💧 Eyedropper</button>
+          <div class="color-swatch-popover" id="colorSwatchPopover" style="display:none;"></div>
+        </div>
+        <button class="btn-ghost btn-sm" id="clearFiltersBtn" style="display:none;">✕ Clear Filters</button>
+      </div>
+      <button class="btn-secondary btn-sm" id="organizerTrayToggleBtn">🗂️ Organizer Tray</button>
+    </div>
+
+    <div class="arena-wrap" id="arenaWrap">
+      <div class="arena" id="arena">
+        <div class="board-frame" id="boardFrame">
+          <img class="board-preview-img" id="previewImg" alt="preview">
+        </div>
+        <!-- piece <canvas> elements are injected here by JS -->
+      </div>
+      <div class="build-progress-overlay" id="buildProgressOverlay">
+        <div class="build-progress-text" id="buildProgressText">Building puzzle…</div>
+      </div>
+    </div>
+
+    <div class="organizer-drawer" id="organizerDrawer">
+      <div class="organizer-drawer-header">
+        <h3>🗂️ Organizer Tray</h3>
+        <button class="modal-close-x" id="closeOrganizerBtn">✕</button>
+      </div>
+      <p class="hint">Drag loose pieces here to store them neatly. Drag a stored piece back out to return it to the workspace.</p>
+      <div class="organizer-drawer-content" id="organizerDrawerContent"></div>
+    </div>
+
+    <p class="hint" id="gameHint">Drag pieces from around the board into place. They'll snap when close to their correct spot.</p>
+  </div>
+
+  <p class="footer-note">Everything runs locally in your browser — no images are uploaded anywhere.</p>
+</div>
+
+<!-- ======================================================================
+     RESUME SESSION MODAL
+     ====================================================================== -->
+<div class="modal-overlay" id="resumeModal">
+  <div class="modal-card">
+    <div class="emoji">🧩</div>
+    <h2>Welcome Back!</h2>
+    <p style="color:var(--text-dim)">An unfinished puzzle was found. Would you like to resume your progress or start a new puzzle?</p>
+    <p class="hint" id="resumeSummary" style="margin-top:14px;"></p>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn-primary" id="resumeGameBtn">▶ Resume Puzzle</button>
+      <button class="btn-secondary" id="discardSaveBtn">Start New Puzzle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     WIN MODAL
+     ====================================================================== -->
+<div class="modal-overlay" id="winModal">
+  <div class="modal-card">
+    <div class="emoji">🎉</div>
+    <div class="world-record-banner" id="worldRecordBanner" style="display:none;">
+      👑 New World Record!
+    </div>
+    <h2>Puzzle Complete!</h2>
+    <p style="color:var(--text-dim)">Nicely done — every piece found its home.</p>
+    <div class="modal-stats">
+      <div class="stat"><span class="label">Time</span><span class="value" id="winTime">00:00</span></div>
+      <div class="stat"><span class="label">Moves</span><span class="value" id="winMoves">0</span></div>
+      <div class="stat"><span class="label">Pieces</span><span class="value" id="winPieces">0</span></div>
+    </div>
+    <div id="winBadges"></div>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn-primary" id="playAgainBtn">Play Again</button>
+      <button class="btn-secondary" id="newFromWinBtn">New Puzzle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     RECORDS / STATS MODAL
+     ====================================================================== -->
+<div class="modal-overlay" id="recordsModal">
+  <div class="modal-card wide">
+    <button class="modal-close-x" data-close="recordsModal">✕</button>
+    <h2>🏆 Records &amp; Stats</h2>
+    <p class="hint" style="margin-top:-6px;">Saved locally in your browser.</p>
+    <table class="records-table">
+      <thead><tr><th>Difficulty</th><th>Best Time</th><th>Fewest Moves</th><th></th></tr></thead>
+      <tbody id="recordsTableBody"></tbody>
+    </table>
+
+    <hr class="section-divider">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <h3 style="margin:0; font-size:.9rem;">🧩 Custom Grids Played</h3>
+      <button class="btn-ghost btn-sm" id="clearAllCustomRecordsBtn" style="display:none;">Clear All Custom</button>
+    </div>
+    <p class="hint" id="customRecordsEmpty">No custom grids completed yet — play a non-preset size (like 20×40) and it'll show up here.</p>
+    <table class="records-table" id="customRecordsTable" style="display:none;">
+      <thead><tr><th>Grid Size</th><th>Best Time</th><th>Fewest Moves</th><th></th></tr></thead>
+      <tbody id="customRecordsTableBody"></tbody>
+    </table>
+
+    <div class="totals-row">
+      <div class="stat"><span class="label">Puzzles Solved</span><span class="value" id="totalSolvedValue">0</span></div>
+      <div class="stat"><span class="label">Total Time Played</span><span class="value" id="totalTimeValue">00:00:00</span></div>
+    </div>
+    <hr class="section-divider">
+    <div class="modal-actions" style="justify-content:flex-start;">
+      <button class="btn-danger" id="resetAllRecordsBtn">Reset All Records</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     SETTINGS MODAL
+     ====================================================================== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-card wide">
+    <button class="modal-close-x" data-close="settingsModal">✕</button>
+    <h2>⚙️ Settings</h2>
+    <p class="hint" style="margin-top:-6px;">Your preferences are saved automatically.</p>
+
+    <div class="settings-group">
+      <h3>Audio</h3>
+      <div class="settings-row">
+        <div><div class="row-label">Sound Effects</div><div class="row-sub">Piece snaps &amp; victory jingle</div></div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="sfxToggle"><span class="slider"></span></label></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="row-label">Volume</div></div>
+        <div class="row-control"><input type="range" id="volumeSlider" min="0" max="100" value="70"><span class="range-value" id="volumeValue">70%</span></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Visual &amp; Theme</h3>
+      <div class="settings-row">
+        <div><div class="row-label">Background Theme</div></div>
+        <div class="row-control">
+          <select id="themeSelect">
+            <option value="dark">Dark Mode</option>
+            <option value="light">Light Gray</option>
+            <option value="cyber">Cyber Mode</option>
+            <option value="felt">Wood &amp; Felt</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div><div class="row-label">Ghost Preview Opacity</div><div class="row-sub">How visible "Show Preview" is</div></div>
+        <div class="row-control"><input type="range" id="ghostOpacitySlider" min="5" max="90" value="32"><span class="range-value" id="ghostOpacityValue">32%</span></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Gameplay</h3>
+      <div class="settings-row">
+        <div><div class="row-label">Snap Sensitivity</div><div class="row-sub">How close a piece must be to lock in</div></div>
+        <div class="row-control">
+          <select id="snapSelect">
+            <option value="generous">Generous</option>
+            <option value="default">Default</option>
+            <option value="strict">Strict</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div><div class="row-label">Piece Rotation</div><div class="row-sub">Pieces start rotated &amp; must be clicked to rotate. Applies to your next puzzle.</div></div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="rotationToggle"><span class="slider"></span></label></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="row-label">Enable Piece Filters (Edge/Color Isolation)</div><div class="row-sub">Shows or hides the filtering toolbar above the workspace</div></div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="filtersEnabledToggle"><span class="slider"></span></label></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h3>Data Management</h3>
+      <div class="settings-row">
+        <div><div class="row-label">Records &amp; high scores</div><div class="row-sub">Clears every saved best time, move count and total</div></div>
+        <div class="row-control"><button class="btn-danger" id="resetAllRecordsBtn2">Reset All Records</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/onlineSync.js"></script>
+<script src="js/state.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/settingsPanel.js"></script>
+<script src="js/recordsPanel.js"></script>
+<script src="js/imageAspect.js"></script>
+<script src="js/imageGallery.js"></script>
+<script src="js/difficultySelector.js"></script>
+<script src="js/puzzleGeometry.js"></script>
+<script src="js/scatterLayout.js"></script>
+<script src="js/pieceRender.js"></script>
+<script src="js/pieceFilters.js"></script>
+<script src="js/organizerTray.js"></script>
+<script src="js/magneticCluster.js"></script>
+<script src="js/puzzleBuilder.js"></script>
+<script src="js/dragDrop.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/gameUI.js"></script>
+<script src="js/saveLoad.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
