@@ -15,6 +15,10 @@ A browser-based jigsaw puzzle game built with Vanilla JavaScript.
 - Local records and statistics
 - Theme customization
 
+## Live Demo
+
+https://rahu2239.github.io/jigsaw-puzzle-studio/
+
 ## Screenshots
 ### Setup Screen
 
